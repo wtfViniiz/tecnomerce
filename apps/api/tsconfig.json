@@ -1,0 +1,22 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "baseUrl": ".",
+    "types": ["node"],
+    "paths": {
+      "@/*": ["src/*"],
+      "@coremd/config/*": ["../../packages/config/src/*"],
+      "@coremd/types/*": ["../../packages/types/src/*"],
+      "@coremd/utils/*": ["../../packages/utils/src/*"]
+    }
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    { "path": "../../packages/config" },
+    { "path": "../../packages/types" },
+    { "path": "../../packages/utils" }
+  ]
+}

@@ -1,0 +1,224 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserType {
+  CUSTOMER
+  ADMIN
+  SYSTEM
+}
+
+enum AddressType {
+  RESIDENTIAL
+  COMMERCIAL
+}
+
+enum AuditActorType {
+  USER
+  ADMIN
+  SYSTEM
+  PROVIDER
+}
+
+model User {
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  name               String
+  passwordHash       String
+  tokenVersion       Int       @default(0)
+  isActive           Boolean   @default(true)
+  emailVerified      Boolean   @default(false)
+  lastLoginAt        DateTime?
+  twoFaEnabled       Boolean   @default(false)
+  twoFaSecret        String?
+  twoFaBackupHashes  String[]
+  userType           UserType  @default(CUSTOMER)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  deletedAt          DateTime?
+  sessions           Session[]
+  roles              UserRole[]
+  auditEvents        AuditEvent[] @relation("AuditActorUser")
+  emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens     PasswordResetToken[]
+
+  @@index([isActive, emailVerified])
+  @@index([deletedAt])
+}
+
+model Role {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  description String
+  isSystem    Boolean          @default(false)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  users       UserRole[]
+  permissions RolePermission[]
+
+  @@index([isSystem])
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  resource    String
+  action      String
+  description String
+  roles       RolePermission[]
+
+  @@unique([resource, action])
+}
+
+model UserRole {
+  userId String
+  roleId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  @@id([userId, roleId])
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Restrict)
+
+  @@id([roleId, permissionId])
+}
+
+model Session {
+  id                             String    @id @default(cuid())
+  userId                         String
+  chainId                        String
+  refreshTokenLookupHash         String    @unique
+  refreshTokenHash               String
+  previousRefreshTokenLookupHash String?
+  previousRefreshTokenHash       String?
+  tokenVersion                   Int
+  permissionsVersion             Int       @default(0)
+  revokedAt                      DateTime?
+  compromisedAt                  DateTime?
+  lastUsedAt                     DateTime?
+  expiresAt                      DateTime
+  replacedBySessionId            String?
+  isTwoFactorVerified            Boolean   @default(false)
+  stepUpVerifiedAt               DateTime?
+  ipAddress                      String?
+  userAgent                      String?
+  deviceName                     String?
+  createdAt                      DateTime  @default(now())
+  updatedAt                      DateTime  @updatedAt
+  user                           User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([chainId])
+  @@index([expiresAt])
+  @@index([revokedAt])
+}
+
+model AuditEvent {
+  id            String         @id @default(cuid())
+  eventType     String
+  eventCategory String
+  actorType     AuditActorType
+  actorUserId   String?
+  targetType    String
+  targetId      String?
+  requestId     String?
+  traceId       String
+  ipAddress     String?
+  userAgent     String?
+  metadata      Json?
+  outcome       String
+  createdAt     DateTime       @default(now())
+  actorUser     User?          @relation("AuditActorUser", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([eventType])
+  @@index([eventCategory])
+  @@index([actorUserId])
+  @@index([targetId])
+  @@index([traceId])
+  @@index([createdAt])
+}
+
+model EmailVerificationToken {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Fabric {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String
+  composition String
+  breathability String
+  weight      String
+  advantages  String
+  status      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+  createdByUserId String?
+  updatedByUserId String?
+
+  @@index([status])
+  @@index([deletedAt])
+}
+
+model SizeOption {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  sortOrder Int
+  status    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@index([sortOrder])
+  @@index([deletedAt])
+}
+
+model ColorOption {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  hexCode   String
+  sortOrder Int
+  status    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
+
+  @@index([sortOrder])
+  @@index([deletedAt])
+}
