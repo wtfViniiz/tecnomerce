@@ -164,7 +164,7 @@ const run = async (): Promise<void> => {
     create: {
       code: "pac",
       name: "PAC",
-      type: "FLAT_RATE",
+      type: "STANDARD",
       isActive: true,
       sortOrder: 1
     }
@@ -176,7 +176,7 @@ const run = async (): Promise<void> => {
     create: {
       code: "sedex",
       name: "SEDEX",
-      type: "FLAT_RATE",
+      type: "EXPRESS",
       isActive: true,
       sortOrder: 2
     }
@@ -188,7 +188,7 @@ const run = async (): Promise<void> => {
     create: {
       code: "frete-gratis",
       name: "Frete Grátis",
-      type: "FREE",
+      type: "STANDARD",
       isActive: true,
       sortOrder: 0
     }
@@ -270,6 +270,22 @@ const run = async (): Promise<void> => {
       isStackable: false
     }
   });
+
+  // CouponRestriction: BEMVINDO10 only applies to products in specific categories
+  // No restrictions = applies to all products (default behavior)
+  // Uncomment below to restrict to specific category:
+  /*
+  const bemvindo10 = await prisma.coupon.findUnique({ where: { code: "BEMVINDO10" } });
+  if (bemvindo10) {
+    await prisma.couponRestriction.create({
+      data: {
+        couponId: bemvindo10.id,
+        categoryId: someCategoryId, // Set specific category ID
+        productId: null
+      }
+    });
+  }
+  */
 
   await prisma.coupon.upsert({
     where: { code: "FRETEGRATIS" },

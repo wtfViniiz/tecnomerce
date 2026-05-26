@@ -28,7 +28,7 @@ import { CheckoutController } from "@/modules/checkout/controllers/checkout.cont
 import { CheckoutService } from "@/modules/checkout/services/checkout.service.js";
 import { PrismaFavoriteProvider } from "@/providers/favorite.provider.js";
 import { PrismaAddressProvider } from "@/providers/address.provider.js";
-import { PrismaCouponProvider, PrismaCouponUsageProvider } from "@/providers/coupon.provider.js";
+import { PrismaCouponProvider, PrismaCouponUsageProvider, PrismaCouponRestrictionProvider } from "@/providers/coupon.provider.js";
 import { PrismaShippingRuleProvider } from "@/providers/shipping-rule.provider.js";
 import { PrismaCartProvider } from "@/providers/cart.provider.js";
 import { PrismaOrderProvider } from "@/providers/order.provider.js";
@@ -130,6 +130,7 @@ export const buildContainer = (): Container => {
   const addressProvider = new PrismaAddressProvider();
   const couponProvider = new PrismaCouponProvider();
   const couponUsageProvider = new PrismaCouponUsageProvider();
+  const couponRestrictionProvider = new PrismaCouponRestrictionProvider();
   const shippingRuleProvider = new PrismaShippingRuleProvider();
   const cartProvider = new PrismaCartProvider();
   const orderProvider = new PrismaOrderProvider();
@@ -143,7 +144,7 @@ export const buildContainer = (): Container => {
   const addressService = new AddressService(addressProvider, auditProvider);
   const addressController = new AddressController(addressService);
 
-  const couponService = new CouponService(couponProvider, couponUsageProvider, auditProvider);
+  const couponService = new CouponService(couponProvider, couponUsageProvider, couponRestrictionProvider, auditProvider);
   const couponController = new CouponController(couponService);
 
   const shippingService = new ShippingService(shippingRuleProvider, auditProvider);
@@ -169,9 +170,11 @@ export const buildContainer = (): Container => {
     shippingRuleProvider,
     couponProvider,
     couponUsageProvider,
+    couponRestrictionProvider,
     orderProvider,
     paymentAttemptProvider,
     productVariantProvider,
+    productProvider,
     auditProvider
   );
   const checkoutController = new CheckoutController(checkoutService);
@@ -225,6 +228,7 @@ export const buildContainer = (): Container => {
   container.register(TOKENS.addressProvider, addressProvider);
   container.register(TOKENS.couponProvider, couponProvider);
   container.register(TOKENS.couponUsageProvider, couponUsageProvider);
+  container.register(TOKENS.couponRestrictionProvider, couponRestrictionProvider);
   container.register(TOKENS.shippingRuleProvider, shippingRuleProvider);
   container.register(TOKENS.cartProvider, cartProvider);
   container.register(TOKENS.orderProvider, orderProvider);

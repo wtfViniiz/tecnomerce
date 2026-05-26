@@ -9,10 +9,11 @@ import type {
   IShippingRuleProvider,
   ICouponProvider,
   ICouponUsageProvider,
+  ICouponRestrictionProvider,
   IOrderProvider,
   IPaymentAttemptProvider
 } from "@/providers/contracts-fase4.js";
-import type { IProductVariantProvider, IAuditProvider } from "@/providers/contracts.js";
+import type { IProductVariantProvider, IProductProvider, IAuditProvider } from "@/providers/contracts.js";
 import type { CheckoutInput } from "@/modules/checkout/schemas/checkout.schema.js";
 
 type ServiceContext = {
@@ -33,9 +34,11 @@ export class CheckoutService {
     private readonly shippingRuleProvider: IShippingRuleProvider,
     private readonly couponProvider: ICouponProvider,
     private readonly couponUsageProvider: ICouponUsageProvider,
+    private readonly couponRestrictionProvider: ICouponRestrictionProvider,
     private readonly orderProvider: IOrderProvider,
     private readonly paymentAttemptProvider: IPaymentAttemptProvider,
     private readonly productVariantProvider: IProductVariantProvider,
+    private readonly productProvider: IProductProvider,
     private readonly auditProvider: IAuditProvider
   ) {}
 
@@ -97,6 +100,23 @@ export class CheckoutService {
         }
         if (coupon.minimumOrderAmountCents !== null && subtotalCents < coupon.minimumOrderAmountCents) {
           throw new CheckoutError("CHECKOUT.MINIMUM_ORDER", "Order does not meet minimum amount for coupon.");
+        }
+
+        // Check coupon restrictions (product/category applicability)
+        const restrictions = await this.couponRestrictionProvider.findByCouponId(coupon.id);
+        if (restrictions.length > 0) {
+          const productIds = items.map((item) => item.productVariantId);
+          const eligible = await this.couponRestrictionProvider.checkProductEligible(
+            coupon.id,
+            productIds,
+            [] // categoryIds — could be enriched with product category lookups
+          );
+          if (!eligible) {
+            throw new CheckoutError(
+              "CHECKOUT.COUPON_NOT_APPLICABLE",
+              "Coupon is not applicable to items in your cart."
+            );
+          }
         }
 
         // Calculate discount

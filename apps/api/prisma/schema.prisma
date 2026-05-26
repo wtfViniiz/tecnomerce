@@ -269,6 +269,7 @@ model Category {
   updatedByUserId String?
 
   products Product[]
+  couponRestrictions CouponRestriction[]
 
   @@index([status])
   @@index([sortOrder])
@@ -300,6 +301,7 @@ model Product {
   customization ProductCustomizationPreset?
   orderItems   OrderItem[]
   favorites    Favorite[]
+  couponRestrictions CouponRestriction[]
 
   @@index([categoryId])
   @@index([status])
@@ -528,12 +530,28 @@ model Coupon {
   createdByUserId           String?
   updatedByUserId           String?
 
-  usages CouponUsage[]
-  orders Order[]
+  usages       CouponUsage[]
+  orders       Order[]
+  restrictions CouponRestriction[]
 
   @@index([status])
   @@index([startsAt, expiresAt])
   @@index([deletedAt])
+}
+
+model CouponRestriction {
+  id         String   @id @default(cuid())
+  couponId   String
+  productId  String?
+  categoryId String?
+
+  coupon   Coupon    @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  product  Product?  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([couponId])
+  @@index([productId])
+  @@index([categoryId])
 }
 
 model CouponUsage {

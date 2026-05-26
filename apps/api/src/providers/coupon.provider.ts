@@ -1,4 +1,4 @@
-import type { CouponRecord, CouponUsageRecord, ICouponProvider, ICouponUsageProvider } from "@/providers/contracts-fase4.js";
+import type { CouponRecord, CouponUsageRecord, CouponRestrictionRecord, ICouponProvider, ICouponUsageProvider, ICouponRestrictionProvider } from "@/providers/contracts-fase4.js";
 import { prisma } from "@/providers/prisma.js";
 
 const mapCoupon = (coupon: {
@@ -174,5 +174,50 @@ export class PrismaCouponUsageProvider implements ICouponUsageProvider {
     return prisma.couponUsage.count({
       where: { couponId, userId }
     });
+  }
+}
+
+export class PrismaCouponRestrictionProvider implements ICouponRestrictionProvider {
+  public async findByCouponId(couponId: string): Promise<CouponRestrictionRecord[]> {
+    const restrictions = await prisma.couponRestriction.findMany({
+      where: { couponId }
+    });
+    return restrictions.map((r) => ({
+      id: r.id,
+      couponId: r.couponId,
+      productId: r.productId,
+      categoryId: r.categoryId
+    }));
+  }
+
+  public async create(input: Omit<CouponRestrictionRecord, "id">): Promise<CouponRestrictionRecord> {
+    const restriction = await prisma.couponRestriction.create({
+      data: {
+        couponId: input.couponId,
+        productId: input.productId,
+        categoryId: input.categoryId
+      }
+    });
+    return {
+      id: restriction.id,
+      couponId: restriction.couponId,
+      productId: restriction.productId,
+      categoryId: restriction.categoryId
+    };
+  }
+
+  public async deleteByCouponId(couponId: string): Promise<void> {
+    await prisma.couponRestriction.deleteMany({ where: { couponId } });
+  }
+
+  public async checkProductEligible(couponId: string, productIds: string[], categoryIds: string[]): Promise<boolean> {
+    const restrictions = await this.findByCouponId(couponId);
+    if (restrictions.length === 0) return true; // No restrictions = all products eligible
+
+    return restrictions.some(
+      (r) =>
+        (r.productId !== null && productIds.includes(r.productId)) ||
+        (r.categoryId !== null && categoryIds.includes(r.categoryId))
+    );
   }
 }

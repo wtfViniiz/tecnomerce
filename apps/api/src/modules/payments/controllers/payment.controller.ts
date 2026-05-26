@@ -27,10 +27,14 @@ export class PaymentController {
   };
 
   public webhook = async (request: Request, response: Response): Promise<void> => {
+    const rawBody = request.body instanceof Buffer
+      ? request.body
+      : Buffer.from(JSON.stringify(request.body));
+
     await this.paymentService.processWebhook(
       request.headers as Record<string, string | string[] | undefined>,
       request.query as Record<string, string | string[] | undefined>,
-      request.body as Record<string, unknown>,
+      rawBody,
       {
         traceId: request.context.traceId,
         requestId: request.context.requestId

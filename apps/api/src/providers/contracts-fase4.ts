@@ -335,3 +335,17 @@ export interface IFavoriteProvider {
   create(input: Omit<FavoriteRecord, "id" | "createdAt">): Promise<FavoriteRecord>;
   delete(userId: string, productId: string): Promise<void>;
 }
+
+export type CouponRestrictionRecord = {
+  id: string;
+  couponId: string;
+  productId: string | null;
+  categoryId: string | null;
+};
+
+export interface ICouponRestrictionProvider {
+  findByCouponId(couponId: string): Promise<CouponRestrictionRecord[]>;
+  create(input: Omit<CouponRestrictionRecord, "id">): Promise<CouponRestrictionRecord>;
+  deleteByCouponId(couponId: string): Promise<void>;
+  checkProductEligible(couponId: string, productIds: string[], categoryIds: string[]): Promise<boolean>;
+}

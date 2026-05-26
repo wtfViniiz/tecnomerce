@@ -11,7 +11,11 @@ export const createCouponSchema = z.object({
   startsAt: z.string().datetime().optional(),
   expiresAt: z.string().datetime().optional(),
   minimumOrderAmountCents: z.number().int().min(0).optional(),
-  isStackable: z.boolean().default(false)
+  isStackable: z.boolean().default(false),
+  restrictions: z.array(z.object({
+    productId: z.string().uuid().optional(),
+    categoryId: z.string().uuid().optional()
+  })).optional()
 }).refine(
   (data) => data.type !== "PERCENTAGE" || data.valueCentsOrPercentage <= 100,
   { message: "Percentage value must be at most 100", path: ["valueCentsOrPercentage"] }

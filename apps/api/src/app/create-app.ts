@@ -88,6 +88,7 @@ export const createApp = (deps: CreateAppDeps): Express => {
 
   app.disable("x-powered-by");
   app.use(helmet());
+  app.use("/api/v1/webhooks/mercadopago", express.raw({ type: "application/json" }));
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
   app.use(createTraceMiddleware(deps.traceProvider, logger));

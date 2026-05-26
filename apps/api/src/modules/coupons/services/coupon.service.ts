@@ -1,6 +1,6 @@
 import { ResourceError } from "@/core/errors/resource-error.js";
 import { RequestError } from "@/core/errors/request-error.js";
-import type { CouponRecord, ICouponProvider, ICouponUsageProvider } from "@/providers/contracts-fase4.js";
+import type { CouponRecord, ICouponProvider, ICouponUsageProvider, ICouponRestrictionProvider } from "@/providers/contracts-fase4.js";
 import type { IAuditProvider } from "@/providers/contracts.js";
 import type { CreateCouponInput, UpdateCouponInput } from "@/modules/coupons/schemas/coupon.schema.js";
 
@@ -14,6 +14,7 @@ export class CouponService {
   public constructor(
     private readonly couponProvider: ICouponProvider,
     private readonly couponUsageProvider: ICouponUsageProvider,
+    private readonly couponRestrictionProvider: ICouponRestrictionProvider,
     private readonly auditProvider: IAuditProvider
   ) {}
 
@@ -62,6 +63,17 @@ export class CouponService {
       createdByUserId: context.userId ?? null,
       updatedByUserId: context.userId ?? null
     });
+
+    // Persist restrictions if provided
+    if (input.restrictions && input.restrictions.length > 0) {
+      for (const restriction of input.restrictions) {
+        await this.couponRestrictionProvider.create({
+          couponId: coupon.id,
+          productId: restriction.productId ?? null,
+          categoryId: restriction.categoryId ?? null
+        });
+      }
+    }
 
     await this.auditProvider.emit({
       eventType: "COUPON_CREATED",

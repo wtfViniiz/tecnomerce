@@ -122,10 +122,12 @@ export class PaymentService {
         mpBody.installments = input.installments;
       }
 
-      const mpPayment = await this.paymentClient.create({
-        body: mpBody as never,
-        requestOptions: { idempotencyKey }
-      });
+      const mpPayment = await this.withRetry(() =>
+        this.paymentClient.create({
+          body: mpBody as never,
+          requestOptions: { idempotencyKey }
+        })
+      );
 
       const providerPaymentId = mpPayment.id?.toString() ?? null;
       const providerOrderId = mpPayment.order?.id?.toString() ?? null;
@@ -209,12 +211,29 @@ export class PaymentService {
     }
   }
 
+  private async withRetry<T>(fn: () => Promise<T>, maxRetries = 2): Promise<T> {
+    let lastError: unknown;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error;
+        if (attempt === maxRetries) throw error;
+        const delay = Math.pow(2, attempt) * 1000;
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    throw lastError;
+  }
+
   public async processWebhook(
     headers: Record<string, string | string[] | undefined>,
     query: Record<string, string | string[] | undefined>,
-    body: Record<string, unknown>,
+    rawBody: Buffer,
     context: ServiceContext
   ): Promise<PaymentWebhookEventRecord> {
+    const body: Record<string, unknown> = JSON.parse(rawBody.toString("utf-8"));
+
     let signatureValid = false;
     try {
       WebhookSignatureValidator.validate({
@@ -229,10 +248,37 @@ export class PaymentService {
       // Signature validation failed
     }
 
+    // Replay protection: reject events older than 5 minutes
+    if (signatureValid) {
+      const xSignature = headers["x-signature"];
+      const sigString = Array.isArray(xSignature) ? xSignature[0] : xSignature;
+      if (sigString) {
+        const tsMatch = sigString.match(/ts=(\d+)/);
+        if (tsMatch) {
+          const eventTimestamp = parseInt(tsMatch[1]!, 10);
+          const nowSeconds = Math.floor(Date.now() / 1000);
+          if (Math.abs(nowSeconds - eventTimestamp) > 300) {
+            logger.warn({ traceId: context.traceId, eventTimestamp }, "Webhook replay detected - event too old");
+            const replayEvent = await this.webhookEventProvider.create({
+              paymentAttemptId: null,
+              providerEventId: (query["data.id"] as string) ?? null,
+              providerTopic: (query.type as string) ?? (body.type as string) ?? "payment",
+              signatureValidated: true,
+              rawBodyHash: createHash("sha256").update(rawBody).digest("hex"),
+              processingStatus: "REJECTED_REPLAY",
+              traceId: context.traceId
+            });
+            await this.webhookEventProvider.markProcessed(replayEvent.id, new Date());
+            return replayEvent;
+          }
+        }
+      }
+    }
+
     const dataId = query["data.id"] as string | undefined;
     const topic = (query.type as string) ?? (body.type as string) ?? "payment";
 
-    const rawBodyHash = createHash("sha256").update(JSON.stringify(body)).digest("hex");
+    const rawBodyHash = createHash("sha256").update(rawBody).digest("hex");
 
     const webhookEvent = await this.webhookEventProvider.create({
       paymentAttemptId: null,
@@ -292,7 +338,9 @@ export class PaymentService {
     webhookEventId: string,
     context: ServiceContext
   ): Promise<void> {
-    const mpPayment = await this.paymentClient.get({ id: Number(mpPaymentId) });
+    const mpPayment = await this.withRetry(() =>
+      this.paymentClient.get({ id: Number(mpPaymentId) })
+    );
     const externalReference = mpPayment.external_reference;
 
     if (!externalReference) return;
