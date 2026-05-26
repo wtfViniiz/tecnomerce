@@ -229,10 +229,15 @@ Pendencias: seeds de frete/cupons, testes de integracao Fase 4, migration contra
 - Merge de carrinho requer autenticacao
 - Pagamento requer cartao tokenizado via frontend (dados nunca passam pelo backend)
 
+### Fase 4 - Gaps de spec corrigidos (commit 8644886)
+1. Raw body preservado para webhook (express.raw() antes de express.json())
+2. Replay protection no webhook (validacao de timestamp x-signature, tolerancia 300s)
+3. Timeout/retry para chamadas ao Mercado Pago (withRetry() com backoff exponencial)
+4. Cupom com aplicabilidade por categoria/produto (CouponRestriction + validacao no checkout)
+
 ### Fase 4 - Proximo passo
 - Migration contra PostgreSQL real: `npx prisma migrate deploy`
-- Seeds de ShippingMethod + ShippingRule
-- Testes de integracao para checkout flow
+- Seeds: `npx prisma db seed`
 - Integracao frontend (MercadoPago.js para tokenizacao)
 
 ## Regras de implementacao
