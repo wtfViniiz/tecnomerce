@@ -175,6 +175,67 @@ export class AuthService {
     };
   }
 
+  public async register(input: {
+    name: string;
+    email: string;
+    password: string;
+    context: RequestContext;
+  }): Promise<{
+    accessToken: string;
+    refreshToken: string;
+    session: SessionRecord;
+  }> {
+    const existingUser = await this.userProvider.findByEmail(input.email);
+    if (existingUser) {
+      throw new RequestError("REQUEST.EMAIL_ALREADY_EXISTS", "An account with this email already exists.");
+    }
+
+    const passwordHash = await hashPassword(input.password);
+    const userId = randomUUID();
+    const now = new Date();
+
+    const user = await this.userProvider.create({
+      id: userId,
+      email: input.email,
+      name: input.name,
+      passwordHash,
+      tokenVersion: 0,
+      isActive: true,
+      emailVerified: false,
+      lastLoginAt: now,
+      twoFaEnabled: false,
+      twoFaSecret: null,
+      twoFaBackupHashes: [],
+      userType: "CUSTOMER",
+      createdAt: now,
+      updatedAt: now,
+      deletedAt: null
+    });
+
+    const { accessToken, refreshToken, session } = await this.createAuthenticatedSession({
+      user,
+      isTwoFactorVerified: true,
+      context: input.context
+    });
+
+    await this.userProvider.updateLastLogin(user.id, now);
+    await this.auditProvider.emit({
+      eventType: "REGISTER_SUCCESS",
+      eventCategory: "AUTH",
+      actorType: "USER",
+      actorUserId: user.id,
+      targetType: "USER",
+      targetId: user.id,
+      traceId: input.context.traceId,
+      requestId: input.context.requestId,
+      ipAddress: input.context.ipAddress,
+      userAgent: input.context.userAgent,
+      outcome: "SUCCESS"
+    });
+
+    return { accessToken, refreshToken, session };
+  }
+
   public async refresh(input: RefreshInput): Promise<{
     accessToken: string;
     refreshToken: string;

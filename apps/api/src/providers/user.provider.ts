@@ -13,6 +13,10 @@ const mapUser = (user: {
   twoFaEnabled: boolean;
   twoFaSecret: string | null;
   twoFaBackupHashes: string[];
+  userType: string;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
 }): UserRecord => ({
   id: user.id,
   email: user.email,
@@ -24,7 +28,11 @@ const mapUser = (user: {
   lastLoginAt: user.lastLoginAt,
   twoFaEnabled: user.twoFaEnabled,
   twoFaSecret: user.twoFaSecret,
-  twoFaBackupHashes: user.twoFaBackupHashes
+  twoFaBackupHashes: user.twoFaBackupHashes,
+  userType: user.userType as UserRecord["userType"],
+  createdAt: user.createdAt,
+  updatedAt: user.updatedAt,
+  deletedAt: user.deletedAt
 });
 
 export class PrismaUserProvider implements IUserProvider {
@@ -53,7 +61,9 @@ export class PrismaUserProvider implements IUserProvider {
         lastLoginAt: input.lastLoginAt ?? null,
         twoFaEnabled: input.twoFaEnabled,
         twoFaSecret: input.twoFaSecret,
-        twoFaBackupHashes: input.twoFaBackupHashes
+        twoFaBackupHashes: input.twoFaBackupHashes,
+        userType: input.userType,
+        deletedAt: input.deletedAt
       }
     });
 
@@ -61,20 +71,18 @@ export class PrismaUserProvider implements IUserProvider {
   }
 
   public async update(userId: string, input: Partial<UserRecord>): Promise<UserRecord> {
-    const data = {
-      ...(input.email !== undefined ? { email: input.email } : {}),
-      ...(input.name !== undefined ? { name: input.name } : {}),
-      ...(input.passwordHash !== undefined ? { passwordHash: input.passwordHash } : {}),
-      ...(input.tokenVersion !== undefined ? { tokenVersion: input.tokenVersion } : {}),
-      ...(input.isActive !== undefined ? { isActive: input.isActive } : {}),
-      ...(input.emailVerified !== undefined ? { emailVerified: input.emailVerified } : {}),
-      ...(input.lastLoginAt !== undefined ? { lastLoginAt: input.lastLoginAt } : {}),
-      ...(input.twoFaEnabled !== undefined ? { twoFaEnabled: input.twoFaEnabled } : {}),
-      ...(input.twoFaSecret !== undefined ? { twoFaSecret: input.twoFaSecret } : {}),
-      ...(input.twoFaBackupHashes !== undefined
-        ? { twoFaBackupHashes: input.twoFaBackupHashes }
-        : {})
-    };
+    const data: Record<string, unknown> = {};
+
+    if (input.email !== undefined) data.email = input.email;
+    if (input.name !== undefined) data.name = input.name;
+    if (input.passwordHash !== undefined) data.passwordHash = input.passwordHash;
+    if (input.tokenVersion !== undefined) data.tokenVersion = input.tokenVersion;
+    if (input.isActive !== undefined) data.isActive = input.isActive;
+    if (input.emailVerified !== undefined) data.emailVerified = input.emailVerified;
+    if (input.lastLoginAt !== undefined) data.lastLoginAt = input.lastLoginAt;
+    if (input.twoFaEnabled !== undefined) data.twoFaEnabled = input.twoFaEnabled;
+    if (input.twoFaSecret !== undefined) data.twoFaSecret = input.twoFaSecret;
+    if (input.twoFaBackupHashes !== undefined) data.twoFaBackupHashes = input.twoFaBackupHashes;
 
     const user = await prisma.user.update({
       where: { id: userId },

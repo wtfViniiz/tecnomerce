@@ -14,7 +14,8 @@ const envSchema = z.object({
   STEP_UP_TTL_MINUTES: z.coerce.number().int().positive().default(15),
   PERMISSION_CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(300),
   SESSION_CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(900),
-  REFRESH_METADATA_TTL_SECONDS: z.coerce.number().int().positive().default(2592000)
+  REFRESH_METADATA_TTL_SECONDS: z.coerce.number().int().positive().default(2592000),
+  SENTRY_DSN: z.string().optional().default("")
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

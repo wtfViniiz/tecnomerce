@@ -79,6 +79,33 @@ export class AuthController {
     );
   };
 
+  public register = async (request: Request, response: Response): Promise<void> => {
+    const result = await this.authService.register({
+      name: request.body.name,
+      email: request.body.email,
+      password: request.body.password,
+      context: buildContext(request)
+    });
+
+    response.cookie(authConfig.refreshCookieName, result.refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      path: authConfig.refreshCookiePath,
+      maxAge: authConfig.refreshSessionTtlDays * 24 * 60 * 60 * 1000
+    });
+
+    response.status(201).json(
+      successResponse(request.context.traceId, {
+        accessToken: result.accessToken,
+        session: {
+          ...toSessionView(result.session),
+          isCurrent: true
+        }
+      })
+    );
+  };
+
   public refresh = async (request: Request, response: Response): Promise<void> => {
     const rawRefreshToken = request.cookies[authConfig.refreshCookieName] as string | undefined;
     if (!rawRefreshToken) {

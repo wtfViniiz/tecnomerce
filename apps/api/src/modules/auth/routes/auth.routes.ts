@@ -9,6 +9,7 @@ import { createAuthenticateMiddleware } from "@/modules/auth/middleware/authenti
 import { requirePermission } from "@/modules/auth/middleware/require-permission.middleware.js";
 import { emptySchema } from "@/modules/auth/schemas/me.schema.js";
 import { loginSchema } from "@/modules/auth/schemas/login.schema.js";
+import { registerSchema } from "@/modules/auth/schemas/register.schema.js";
 import { refreshSchema } from "@/modules/auth/schemas/refresh.schema.js";
 import { revokeSessionBodySchema, sessionIdParamSchema } from "@/modules/auth/schemas/session.schema.js";
 import { disableTwoFaSchema, verifyTwoFaSchema } from "@/modules/auth/schemas/two-fa.schema.js";
@@ -39,6 +40,18 @@ export const createAuthRouter = (deps: CreateAuthRouterDeps): Router => {
     deps.authService,
     deps.userProvider,
     deps.sessionProvider
+  );
+
+  router.post(
+    "/auth/register",
+    createRateLimitMiddleware({
+      key: (request) => request.ip ?? "unknown",
+      limit: 3,
+      windowSeconds: 60,
+      code: "RATE_LIMIT.AUTH_REGISTER"
+    }),
+    validateRequest({ body: registerSchema }),
+    asyncHandler(deps.controller.register)
   );
 
   router.post(

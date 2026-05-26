@@ -7,5 +7,6 @@ export const redisKeys = {
   permissions: `${prefix}permissions:`,
   ratelimit: `${prefix}ratelimit:`,
   sse: `${prefix}sse:`,
-  queue: `${prefix}queue:`
+  queue: `${prefix}queue:`,
+  public: `${prefix}public:`
 } as const;

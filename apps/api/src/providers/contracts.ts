@@ -10,6 +10,10 @@ export type UserRecord = {
   twoFaEnabled: boolean;
   twoFaSecret: string | null;
   twoFaBackupHashes: string[];
+  userType: "CUSTOMER" | "ADMIN" | "SYSTEM";
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
 };
 
 export type SessionRecord = {
@@ -139,7 +143,7 @@ export type SseConnection = {
 };
 
 export interface ISseProvider {
-  connect(connection: SseConnection): Promise<void>;
+  connect(connection: SseConnection, response: import("express").Response): Promise<string>;
   disconnect(connectionId: string): Promise<void>;
   publish(channel: string, payload: Record<string, unknown>): Promise<void>;
   broadcast(scope: SseConnection["scope"], payload: Record<string, unknown>): Promise<void>;
@@ -183,4 +187,156 @@ export interface IPaymentProvider {
 export interface IShippingProvider {
   calculateShipping(payload: Record<string, unknown>): Promise<Record<string, unknown>>;
   validateZipCode(postalCode: string): Promise<boolean>;
+}
+
+// ═══════════════════════════════════════════════════════
+// Fase 3 - Catalogo e Conteudo
+// ═══════════════════════════════════════════════════════
+
+export type CategoryRecord = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  sortOrder: number;
+  status: string;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+  createdByUserId: string | null;
+  updatedByUserId: string | null;
+};
+
+export type ProductRecord = {
+  id: string;
+  slug: string;
+  name: string;
+  description: string;
+  categoryId: string;
+  status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  isCustomizable: boolean;
+  couponEligible: boolean;
+  productionTimeDays: number;
+  seoTitle: string | null;
+  seoDescription: string | null;
+  publishedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+  createdByUserId: string | null;
+  updatedByUserId: string | null;
+};
+
+export type ProductVariantRecord = {
+  id: string;
+  productId: string;
+  sku: string;
+  fabricId: string;
+  sizeOptionId: string;
+  colorOptionId: string;
+  basePriceCents: number;
+  promotionalPriceCents: number | null;
+  currencyCode: string;
+  status: string;
+  isAvailable: boolean;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+  createdByUserId: string | null;
+  updatedByUserId: string | null;
+};
+
+export type ProductMediaRecord = {
+  id: string;
+  productId: string;
+  storageKey: string;
+  cdnUrl: string;
+  altText: string | null;
+  mediaType: "IMAGE";
+  position: number;
+  isPrimary: boolean;
+  width: number | null;
+  height: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+  createdByUserId: string | null;
+};
+
+export type BannerRecord = {
+  id: string;
+  slug: string;
+  title: string;
+  subtitle: string | null;
+  ctaLabel: string | null;
+  ctaHref: string | null;
+  desktopMediaKey: string | null;
+  mobileMediaKey: string | null;
+  status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  startsAt: Date | null;
+  endsAt: Date | null;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+  deletedAt: Date | null;
+  createdByUserId: string | null;
+  updatedByUserId: string | null;
+};
+
+export interface ICategoryProvider {
+  findById(id: string): Promise<CategoryRecord | null>;
+  findBySlug(slug: string): Promise<CategoryRecord | null>;
+  list(options: { status?: string; includeDeleted?: boolean }): Promise<CategoryRecord[]>;
+  create(input: Omit<CategoryRecord, "id" | "createdAt" | "updatedAt" | "deletedAt">): Promise<CategoryRecord>;
+  update(id: string, input: Partial<CategoryRecord>): Promise<CategoryRecord>;
+  softDelete(id: string, deletedAt: Date): Promise<void>;
+}
+
+export interface IProductProvider {
+  findById(id: string): Promise<ProductRecord | null>;
+  findBySlug(slug: string): Promise<ProductRecord | null>;
+  list(options: {
+    status?: string;
+    categoryId?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+    includeDeleted?: boolean;
+  }): Promise<{ items: ProductRecord[]; total: number }>;
+  create(input: Omit<ProductRecord, "id" | "createdAt" | "updatedAt" | "deletedAt">): Promise<ProductRecord>;
+  update(id: string, input: Partial<ProductRecord>): Promise<ProductRecord>;
+  softDelete(id: string, deletedAt: Date): Promise<void>;
+}
+
+export interface IProductVariantProvider {
+  findById(id: string): Promise<ProductVariantRecord | null>;
+  listByProductId(productId: string): Promise<ProductVariantRecord[]>;
+  create(input: Omit<ProductVariantRecord, "id" | "createdAt" | "updatedAt" | "deletedAt">): Promise<ProductVariantRecord>;
+  update(id: string, input: Partial<ProductVariantRecord>): Promise<ProductVariantRecord>;
+  softDelete(id: string, deletedAt: Date): Promise<void>;
+}
+
+export interface IProductMediaProvider {
+  findById(id: string): Promise<ProductMediaRecord | null>;
+  listByProductId(productId: string): Promise<ProductMediaRecord[]>;
+  create(input: Omit<ProductMediaRecord, "id" | "createdAt" | "updatedAt" | "deletedAt">): Promise<ProductMediaRecord>;
+  reorder(productId: string, orderedIds: string[]): Promise<void>;
+  softDelete(id: string, deletedAt: Date): Promise<void>;
+}
+
+export interface IBannerProvider {
+  findById(id: string): Promise<BannerRecord | null>;
+  list(options: { status?: string; includeDeleted?: boolean }): Promise<BannerRecord[]>;
+  listActive(): Promise<BannerRecord[]>;
+  create(input: Omit<BannerRecord, "id" | "createdAt" | "updatedAt" | "deletedAt">): Promise<BannerRecord>;
+  update(id: string, input: Partial<BannerRecord>): Promise<BannerRecord>;
+  softDelete(id: string, deletedAt: Date): Promise<void>;
+}
+
+export interface IPublicCacheProvider {
+  get<T>(key: string): Promise<T | null>;
+  set(key: string, value: unknown, ttlSeconds: number): Promise<void>;
+  invalidate(key: string): Promise<void>;
+  invalidatePattern(pattern: string): Promise<void>;
 }

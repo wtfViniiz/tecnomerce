@@ -29,6 +29,15 @@ export const errorHandler = (
     "request_failed"
   );
 
+  if (!(error instanceof BaseAppError) && error instanceof Error) {
+    void import("@/core/observability/sentry.js").then(({ captureSentryError }) => {
+      captureSentryError(error, {
+        tags: { traceId, code: appError.code, module: "api" },
+        extra: { method: request.method, url: request.originalUrl }
+      });
+    }).catch(() => {});
+  }
+
   response.status(appError.statusCode).json(
     errorResponse(
       traceId,

@@ -2,9 +2,7 @@ import type {
   IEmailProvider,
   IPaymentProvider,
   IShippingProvider,
-  IStorageProvider,
-  ISseProvider,
-  SseConnection
+  IStorageProvider
 } from "@/providers/contracts.js";
 
 export class StubStorageProvider implements IStorageProvider {
@@ -60,27 +58,5 @@ export class StubShippingProvider implements IShippingProvider {
 
   public async validateZipCode(): Promise<boolean> {
     return false;
-  }
-}
-
-export class NativeSseProvider implements ISseProvider {
-  public async connect(_connection: SseConnection): Promise<void> {
-    return;
-  }
-
-  public async disconnect(_connectionId: string): Promise<void> {
-    return;
-  }
-
-  public async publish(_channel: string, _payload: Record<string, unknown>): Promise<void> {
-    return;
-  }
-
-  public async broadcast(_scope: SseConnection["scope"], _payload: Record<string, unknown>): Promise<void> {
-    return;
-  }
-
-  public async authenticateConnection(_sessionId: string): Promise<boolean> {
-    return true;
   }
 }

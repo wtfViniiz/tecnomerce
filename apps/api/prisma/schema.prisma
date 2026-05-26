@@ -46,6 +46,12 @@ model User {
   auditEvents        AuditEvent[] @relation("AuditActorUser")
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens     PasswordResetToken[]
+  carts              Cart[]
+  addresses          Address[]
+  orders             Order[]
+  couponUsages       CouponUsage[]
+  favorites          Favorite[]
+  statusHistoryActed OrderStatusHistory[] @relation("StatusHistoryActor")
 
   @@index([isActive, emailVerified])
   @@index([deletedAt])
@@ -190,6 +196,8 @@ model Fabric {
   createdByUserId String?
   updatedByUserId String?
 
+  variants ProductVariant[]
+
   @@index([status])
   @@index([deletedAt])
 }
@@ -203,6 +211,8 @@ model SizeOption {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
+
+  variants ProductVariant[]
 
   @@index([sortOrder])
   @@index([deletedAt])
@@ -219,6 +229,591 @@ model ColorOption {
   updatedAt DateTime @updatedAt
   deletedAt DateTime?
 
+  variants ProductVariant[]
+
   @@index([sortOrder])
   @@index([deletedAt])
+}
+
+// ═══════════════════════════════════════════════════════
+// Fase 3 - Catalogo e Conteudo
+// ═══════════════════════════════════════════════════════
+
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum MediaType {
+  IMAGE
+}
+
+enum BannerStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Category {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  name            String
+  description     String
+  sortOrder       Int      @default(0)
+  status          String   @default("ACTIVE")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+  createdByUserId String?
+  updatedByUserId String?
+
+  products Product[]
+
+  @@index([status])
+  @@index([sortOrder])
+  @@index([deletedAt])
+}
+
+model Product {
+  id                    String        @id @default(cuid())
+  slug                  String        @unique
+  name                  String
+  description           String
+  categoryId            String
+  status                ProductStatus @default(DRAFT)
+  isCustomizable        Boolean       @default(false)
+  couponEligible        Boolean       @default(true)
+  productionTimeDays    Int           @default(7)
+  seoTitle              String?
+  seoDescription        String?
+  publishedAt           DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  deletedAt             DateTime?
+  createdByUserId       String?
+  updatedByUserId       String?
+
+  category     Category                @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  variants     ProductVariant[]
+  media        ProductMedia[]
+  customization ProductCustomizationPreset?
+  orderItems   OrderItem[]
+  favorites    Favorite[]
+
+  @@index([categoryId])
+  @@index([status])
+  @@index([publishedAt])
+  @@index([deletedAt])
+}
+
+model ProductVariant {
+  id                    String   @id @default(cuid())
+  productId             String
+  sku                   String   @unique
+  fabricId              String
+  sizeOptionId          String
+  colorOptionId         String
+  basePriceCents        Int
+  promotionalPriceCents Int?
+  currencyCode          String   @default("BRL")
+  status                String   @default("ACTIVE")
+  isAvailable           Boolean  @default(true)
+  sortOrder             Int      @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  deletedAt             DateTime?
+  createdByUserId       String?
+  updatedByUserId       String?
+
+  product     Product     @relation(fields: [productId], references: [id], onDelete: Restrict)
+  fabric      Fabric      @relation(fields: [fabricId], references: [id], onDelete: Restrict)
+  sizeOption  SizeOption  @relation(fields: [sizeOptionId], references: [id], onDelete: Restrict)
+  colorOption ColorOption @relation(fields: [colorOptionId], references: [id], onDelete: Restrict)
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+
+  @@unique([productId, fabricId, sizeOptionId, colorOptionId])
+  @@index([productId])
+  @@index([fabricId])
+  @@index([sizeOptionId])
+  @@index([colorOptionId])
+  @@index([status])
+  @@index([isAvailable])
+  @@index([deletedAt])
+}
+
+model ProductMedia {
+  id          String    @id @default(cuid())
+  productId   String
+  storageKey  String    @unique
+  cdnUrl      String
+  altText     String?
+  mediaType   MediaType @default(IMAGE)
+  position    Int       @default(0)
+  isPrimary   Boolean   @default(false)
+  width       Int?
+  height      Int?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdByUserId String?
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([productId])
+  @@index([productId, position])
+  @@index([productId, isPrimary])
+  @@index([deletedAt])
+}
+
+model ProductCustomizationPreset {
+  id                       String   @id @default(cuid())
+  productId                String   @unique
+  allowsCustomName         Boolean  @default(false)
+  allowsCustomNumber       Boolean  @default(false)
+  allowsNotes              Boolean  @default(false)
+  additionalPriceCents     Int      @default(0)
+  additionalProductionDays Int      @default(0)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+}
+
+model Banner {
+  id               String       @id @default(cuid())
+  slug             String       @unique
+  title            String
+  subtitle         String?
+  ctaLabel         String?
+  ctaHref          String?
+  desktopMediaKey  String?
+  mobileMediaKey   String?
+  status           BannerStatus @default(DRAFT)
+  startsAt         DateTime?
+  endsAt           DateTime?
+  sortOrder        Int          @default(0)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+  deletedAt        DateTime?
+  createdByUserId  String?
+  updatedByUserId  String?
+
+  @@index([status])
+  @@index([sortOrder])
+  @@index([startsAt, endsAt])
+  @@index([deletedAt])
+}
+
+// ═══════════════════════════════════════════════════════
+// Fase 4 - Carrinho, Checkout e Pagamentos
+// ═══════════════════════════════════════════════════════
+
+enum CartStatus {
+  ACTIVE
+  MERGED
+  CONVERTED
+  EXPIRED
+  ABANDONED
+}
+
+enum OrderStatus {
+  PENDING
+  WAITING_PAYMENT
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+  PAYMENT_FAILED
+}
+
+enum PaymentStatus {
+  CREATED
+  PENDING
+  PROCESSING
+  AUTHORIZED
+  APPROVED
+  REJECTED
+  CANCELLED
+  REFUNDED
+  CHARGEDBACK
+}
+
+enum PaymentMethod {
+  PIX
+  CREDIT_CARD
+  DEBIT_CARD
+}
+
+enum ShippingMethodType {
+  STANDARD
+  EXPRESS
+  PICKUP
+}
+
+enum CouponType {
+  PERCENTAGE
+  FIXED
+}
+
+enum CouponStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  EXPIRED
+  ARCHIVED
+}
+
+model Cart {
+  id              String     @id @default(cuid())
+  userId          String?
+  guestTokenHash  String?
+  status          CartStatus @default(ACTIVE)
+  expiresAt       DateTime?
+  mergedIntoCartId String?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  items     CartItem[]
+
+  @@index([userId])
+  @@index([guestTokenHash])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+model CartItem {
+  id                        String   @id @default(cuid())
+  cartId                    String
+  productVariantId          String
+  quantity                  Int      @default(1)
+  unitPriceSnapshotCents    Int
+  currencyCode              String   @default("BRL")
+  customName                String?
+  customNumber              String?
+  customNotes               String?
+  customizationPriceCents   Int      @default(0)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  cart           Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  productVariant ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Restrict)
+
+  @@unique([cartId, productVariantId, customName, customNumber, customNotes])
+  @@index([cartId])
+  @@index([productVariantId])
+}
+
+model Coupon {
+  id                        String       @id @default(cuid())
+  code                      String       @unique
+  type                      CouponType
+  valueCentsOrPercentage    Int
+  currencyCode              String       @default("BRL")
+  status                    CouponStatus @default(DRAFT)
+  maxUses                   Int?
+  maxUsesPerUser            Int?
+  usedCount                 Int          @default(0)
+  startsAt                  DateTime?
+  expiresAt                 DateTime?
+  minimumOrderAmountCents   Int?
+  isStackable               Boolean      @default(false)
+  createdAt                 DateTime     @default(now())
+  updatedAt                 DateTime     @updatedAt
+  deletedAt                 DateTime?
+  createdByUserId           String?
+  updatedByUserId           String?
+
+  usages CouponUsage[]
+  orders Order[]
+
+  @@index([status])
+  @@index([startsAt, expiresAt])
+  @@index([deletedAt])
+}
+
+model CouponUsage {
+  id        String   @id @default(cuid())
+  couponId  String
+  userId    String
+  orderId   String
+  usedAt    DateTime @default(now())
+
+  coupon Coupon @relation(fields: [couponId], references: [id], onDelete: Restrict)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  order  Order  @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@index([couponId])
+  @@index([userId])
+  @@index([orderId])
+}
+
+model Address {
+  id            String      @id @default(cuid())
+  userId        String
+  label         String?
+  recipientName String
+  phone         String?
+  postalCode    String
+  street        String
+  number        String
+  complement    String?
+  neighborhood  String
+  city          String
+  state         String
+  countryCode   String      @default("BR")
+  addressType   AddressType @default(RESIDENTIAL)
+  isDefault     Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  deletedAt     DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([userId, isDefault])
+  @@index([postalCode])
+  @@index([deletedAt])
+}
+
+model ShippingMethod {
+  id        String             @id @default(cuid())
+  code      String             @unique
+  name      String
+  type      ShippingMethodType
+  isActive  Boolean            @default(true)
+  sortOrder Int                @default(0)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  deletedAt DateTime?
+
+  rules  ShippingRule[]
+  orders Order[]
+
+  @@index([type])
+  @@index([isActive])
+  @@index([deletedAt])
+}
+
+model ShippingRule {
+  id                     String   @id @default(cuid())
+  shippingMethodId       String
+  postalCodeStart        String
+  postalCodeEnd          String
+  priceCents             Int
+  currencyCode           String   @default("BRL")
+  estimatedMinDays       Int
+  estimatedMaxDays       Int
+  minimumOrderAmountCents Int?
+  isActive               Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  deletedAt              DateTime?
+  createdByUserId        String?
+  updatedByUserId        String?
+
+  shippingMethod ShippingMethod @relation(fields: [shippingMethodId], references: [id], onDelete: Restrict)
+
+  @@index([shippingMethodId])
+  @@index([postalCodeStart, postalCodeEnd])
+  @@index([isActive])
+  @@index([deletedAt])
+}
+
+model Order {
+  id                   String      @id @default(cuid())
+  userId               String
+  status               OrderStatus @default(PENDING)
+  currencyCode         String      @default("BRL")
+  subtotalCents        Int
+  discountAmountCents  Int         @default(0)
+  shippingAmountCents  Int         @default(0)
+  totalAmountCents     Int
+  couponId             String?
+  shippingMethodId     String?
+  placedAt             DateTime?
+  cancelledAt          DateTime?
+  paidAt               DateTime?
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Restrict)
+  coupon         Coupon?         @relation(fields: [couponId], references: [id], onDelete: Restrict)
+  shippingMethod ShippingMethod? @relation(fields: [shippingMethodId], references: [id], onDelete: Restrict)
+  address        OrderAddress?
+  items          OrderItem[]
+  statusHistory  OrderStatusHistory[]
+  paymentAttempts PaymentAttempt[]
+  couponUsages   CouponUsage[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([couponId])
+  @@index([shippingMethodId])
+  @@index([placedAt])
+  @@index([paidAt])
+}
+
+model OrderAddress {
+  id            String      @id @default(cuid())
+  orderId       String      @unique
+  recipientName String
+  phone         String?
+  postalCode    String
+  street        String
+  number        String
+  complement    String?
+  neighborhood  String
+  city          String
+  state         String
+  countryCode   String      @default("BR")
+  addressType   AddressType @default(RESIDENTIAL)
+  createdAt     DateTime    @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([postalCode])
+}
+
+model OrderItem {
+  id                        String @id @default(cuid())
+  orderId                   String
+  productId                 String?
+  productVariantId          String?
+  productNameSnapshot       String
+  productSlugSnapshot       String
+  skuSnapshot               String
+  categoryNameSnapshot      String?
+  fabricNameSnapshot        String?
+  sizeNameSnapshot          String?
+  colorNameSnapshot         String?
+  quantity                  Int
+  unitBasePriceCents        Int
+  unitPromotionalPriceCents Int?
+  unitCustomizationPriceCents Int @default(0)
+  unitFinalPriceCents       Int
+  currencyCode              String @default("BRL")
+  customName                String?
+  customNumber              String?
+  customNotes               String?
+  createdAt                 DateTime @default(now())
+
+  order          Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product        Product?       @relation(fields: [productId], references: [id], onDelete: Restrict)
+  productVariant ProductVariant? @relation(fields: [productVariantId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([productVariantId])
+  @@index([skuSnapshot])
+}
+
+model OrderStatusHistory {
+  id           String      @id @default(cuid())
+  orderId      String
+  fromStatus   OrderStatus?
+  toStatus     OrderStatus
+  reason       String?
+  actorType    AuditActorType
+  actorUserId  String?
+  traceId      String
+  createdAt    DateTime    @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  actor User? @relation("StatusHistoryActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@index([toStatus])
+  @@index([createdAt])
+  @@index([actorUserId])
+}
+
+model PaymentAttempt {
+  id                 String        @id @default(cuid())
+  orderId            String
+  provider           String        @default("mercadopago")
+  providerPaymentId  String?
+  providerOrderId    String?
+  idempotencyKey     String        @unique
+  method             PaymentMethod
+  status             PaymentStatus @default(CREATED)
+  amountCents        Int
+  currencyCode       String        @default("BRL")
+  failureCode        String?
+  failureMessage     String?
+  expiresAt          DateTime?
+  authorizedAt       DateTime?
+  approvedAt         DateTime?
+  cancelledAt        DateTime?
+  refundedAt         DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  order    Order @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  statusTransitions PaymentStatusTransition[]
+  webhookEvents     PaymentWebhookEvent[]
+
+  @@index([orderId])
+  @@index([providerPaymentId])
+  @@index([providerOrderId])
+  @@index([idempotencyKey])
+  @@index([status])
+  @@index([createdAt])
+  @@index([approvedAt])
+}
+
+model PaymentStatusTransition {
+  id               String        @id @default(cuid())
+  paymentAttemptId String
+  fromStatus       PaymentStatus?
+  toStatus         PaymentStatus
+  source           String
+  sourceReference  String?
+  reason           String?
+  traceId          String
+  createdAt        DateTime      @default(now())
+
+  paymentAttempt PaymentAttempt @relation(fields: [paymentAttemptId], references: [id], onDelete: Cascade)
+
+  @@index([paymentAttemptId])
+  @@index([toStatus])
+  @@index([createdAt])
+}
+
+model PaymentWebhookEvent {
+  id                String   @id @default(cuid())
+  paymentAttemptId  String?
+  providerEventId   String?
+  providerTopic     String?
+  signatureValidated Boolean @default(false)
+  rawBodyHash       String?
+  receivedAt        DateTime @default(now())
+  processedAt       DateTime?
+  processingStatus  String   @default("PENDING")
+  traceId           String
+
+  paymentAttempt PaymentAttempt? @relation(fields: [paymentAttemptId], references: [id], onDelete: Restrict)
+
+  @@index([providerEventId])
+  @@index([providerTopic])
+  @@index([receivedAt])
+  @@index([processedAt])
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
 }
