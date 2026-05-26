@@ -1,4 +1,5 @@
 import cookieParser from "cookie-parser";
+import cors from "cors";
 import express, { type Express } from "express";
 import helmet from "helmet";
 
@@ -88,6 +89,12 @@ export const createApp = (deps: CreateAppDeps): Express => {
 
   app.disable("x-powered-by");
   app.use(helmet());
+  app.use(cors({
+    origin: ["http://localhost:3000"],
+    credentials: true,
+    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-guest-token"],
+  }));
   app.use("/api/v1/webhooks/mercadopago", express.raw({ type: "application/json" }));
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());

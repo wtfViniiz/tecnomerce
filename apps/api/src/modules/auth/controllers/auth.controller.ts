@@ -3,7 +3,7 @@ import type { Request, Response } from "express";
 import { authConfig } from "@/config/auth.js";
 import { successResponse } from "@/core/api/api-envelope.js";
 import { AuthError } from "@/core/errors/auth-error.js";
-import type { MeDto, SessionView } from "@/modules/auth/dto/auth.dto.js";
+import type { MeDto, SessionView, UserView } from "@/modules/auth/dto/auth.dto.js";
 import type { AuthService } from "@/modules/auth/services/auth.service.js";
 
 const toSessionView = (session: {
@@ -256,6 +256,12 @@ export class AuthController {
   public me = async (request: Request, response: Response): Promise<void> => {
     const me = await this.authService.me(request.context.userId!, request.context.sessionId!);
     const payload: MeDto = {
+      user: {
+        id: me.user.id,
+        name: me.user.name,
+        email: me.user.email,
+        role: me.user.userType
+      },
       session: {
         ...toSessionView(me.session),
         isCurrent: true

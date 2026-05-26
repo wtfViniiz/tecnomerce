@@ -16,7 +16,15 @@ export type LoginSuccessDto = {
   session: SessionView;
 };
 
+export type UserView = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+};
+
 export type MeDto = {
+  user: UserView;
   session: SessionView;
   permissions: string[];
   flags: {

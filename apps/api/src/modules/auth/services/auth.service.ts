@@ -187,7 +187,7 @@ export class AuthService {
   }> {
     const existingUser = await this.userProvider.findByEmail(input.email);
     if (existingUser) {
-      throw new RequestError("REQUEST.EMAIL_ALREADY_EXISTS", "An account with this email already exists.");
+      throw new RequestError("REGISTER.GENERIC", "Nao foi possivel criar a conta. Tente novamente.");
     }
 
     const passwordHash = await hashPassword(input.password);

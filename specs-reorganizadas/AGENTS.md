@@ -59,6 +59,8 @@ Antes de qualquer alteracao, ler nesta ordem:
 A **Fase 2 (Plataforma Base) esta FECHADA** (2026-05-26).
 A **Fase 3 (Catalogo e Conteudo) esta FECHADA** (2026-05-27).
 A **Fase 4 (Carrinho, Checkout e Pagamentos) esta FECHADA** (2026-05-26).
+**Frontend apps/web** implementado (2026-05-26) — Next.js 14 + MercadoPago.js + checkout completo.
+**Fase 5 (Pedidos, Pos-Pagamento e Operacao) em andamento** (2026-05-26).
 
 ### Ja implementado (Fase 2 completa + Fase 3 parcial)
 - estrutura base do monorepo (`apps/*`, `packages/*`, npm workspaces)

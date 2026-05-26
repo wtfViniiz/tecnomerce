@@ -1,6 +1,6 @@
 import { randomUUID, createHash } from "node:crypto";
 
-import MercadoPagoConfig, { Payment, WebhookSignatureValidator } from "mercadopago";
+import { MercadoPagoConfig, Payment, WebhookSignatureValidator } from "mercadopago";
 
 import { env } from "@/config/env.js";
 import { ResourceError } from "@/core/errors/resource-error.js";

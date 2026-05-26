@@ -1,10 +1,15 @@
 import { Queue, Worker, type JobsOptions } from "bullmq";
+import IORedis from "ioredis";
 
 import { redisKeys } from "@/config/redis-keys.js";
-import { redis } from "@/providers/redis.js";
+import { env } from "@/config/env.js";
 import type { IQueueProvider } from "@/providers/contracts.js";
 import { QUEUES, type QueueName } from "@/queues/queue-names.js";
 import { logger } from "@/core/logging/logger.js";
+
+function createBullRedis(): IORedis {
+  return new IORedis(env.REDIS_URL, { maxRetriesPerRequest: null });
+}
 
 const DEFAULT_JOB_OPTIONS: JobsOptions = {
   attempts: 3,
@@ -41,7 +46,7 @@ export class BullMqQueueProvider implements IQueueProvider {
         await handler(job.data as Record<string, unknown>);
       },
       {
-        connection: redis.duplicate(),
+        connection: createBullRedis(),
         prefix: redisKeys.queue,
         concurrency: 5
       }
@@ -108,7 +113,7 @@ export class BullMqQueueProvider implements IQueueProvider {
     let queue = this.queues.get(queueName);
     if (!queue) {
       queue = new Queue(queueName, {
-        connection: redis.duplicate(),
+        connection: createBullRedis(),
         prefix: redisKeys.queue,
         defaultJobOptions: DEFAULT_JOB_OPTIONS
       });
