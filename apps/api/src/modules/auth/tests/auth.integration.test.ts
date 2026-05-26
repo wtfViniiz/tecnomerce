@@ -106,7 +106,15 @@ const createTestApp = () => {
     bannerService: container.resolve(TOKENS.bannerService),
     mediaController: container.resolve(TOKENS.mediaController),
     mediaService: container.resolve(TOKENS.mediaService),
-    storageProvider: container.resolve(TOKENS.storageProvider)
+    storageProvider: container.resolve(TOKENS.storageProvider),
+    favoriteController: container.resolve(TOKENS.favoriteController),
+    addressController: container.resolve(TOKENS.addressController),
+    couponController: container.resolve(TOKENS.couponController),
+    shippingController: container.resolve(TOKENS.shippingController),
+    cartController: container.resolve(TOKENS.cartController),
+    orderController: container.resolve(TOKENS.orderController),
+    paymentController: container.resolve(TOKENS.paymentController),
+    checkoutController: container.resolve(TOKENS.checkoutController)
   });
 
   return { app, container };

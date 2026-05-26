@@ -13,3 +13,7 @@ process.env.JWT_PRIVATE_KEY = privateKey.export({ format: "pem", type: "pkcs8" }
 process.env.JWT_PUBLIC_KEY = publicKey.export({ format: "pem", type: "spki" }).toString();
 process.env.REFRESH_TOKEN_SECRET = "test-refresh-secret";
 process.env.TWO_FA_ENCRYPTION_KEY = randomBytes(32).toString("base64");
+process.env.MP_ACCESS_TOKEN = "TEST-token";
+process.env.MP_PUBLIC_KEY = "TEST-public-key";
+process.env.MP_WEBHOOK_SECRET = "test-webhook-secret";
+process.env.MP_API_BASE_URL = "https://api.mercadopago.com";

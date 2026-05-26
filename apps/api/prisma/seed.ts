@@ -156,6 +156,138 @@ const run = async (): Promise<void> => {
   }
 
   const _ = customerRole;
+
+  // ── Shipping Methods ──────────────────────────────────
+  const pacMethod = await prisma.shippingMethod.upsert({
+    where: { code: "pac" },
+    update: {},
+    create: {
+      code: "pac",
+      name: "PAC",
+      type: "FLAT_RATE",
+      isActive: true,
+      sortOrder: 1
+    }
+  });
+
+  const sedexMethod = await prisma.shippingMethod.upsert({
+    where: { code: "sedex" },
+    update: {},
+    create: {
+      code: "sedex",
+      name: "SEDEX",
+      type: "FLAT_RATE",
+      isActive: true,
+      sortOrder: 2
+    }
+  });
+
+  const freeMethod = await prisma.shippingMethod.upsert({
+    where: { code: "frete-gratis" },
+    update: {},
+    create: {
+      code: "frete-gratis",
+      name: "Frete Grátis",
+      type: "FREE",
+      isActive: true,
+      sortOrder: 0
+    }
+  });
+
+  // ── Shipping Rules ──────────────────────────────────
+  // PAC: nacional
+  await prisma.shippingRule.upsert({
+    where: { id: "seed-rule-pac-national" },
+    update: {},
+    create: {
+      id: "seed-rule-pac-national",
+      shippingMethodId: pacMethod.id,
+      postalCodeStart: "00000000",
+      postalCodeEnd: "99999999",
+      priceCents: 2490,
+      currencyCode: "BRL",
+      estimatedMinDays: 5,
+      estimatedMaxDays: 10,
+      minimumOrderAmountCents: null,
+      isActive: true
+    }
+  });
+
+  // SEDEX: nacional
+  await prisma.shippingRule.upsert({
+    where: { id: "seed-rule-sedex-national" },
+    update: {},
+    create: {
+      id: "seed-rule-sedex-national",
+      shippingMethodId: sedexMethod.id,
+      postalCodeStart: "00000000",
+      postalCodeEnd: "99999999",
+      priceCents: 4990,
+      currencyCode: "BRL",
+      estimatedMinDays: 1,
+      estimatedMaxDays: 3,
+      minimumOrderAmountCents: null,
+      isActive: true
+    }
+  });
+
+  // Frete Grátis: pedidos acima de R$199,90
+  await prisma.shippingRule.upsert({
+    where: { id: "seed-rule-free-national" },
+    update: {},
+    create: {
+      id: "seed-rule-free-national",
+      shippingMethodId: freeMethod.id,
+      postalCodeStart: "00000000",
+      postalCodeEnd: "99999999",
+      priceCents: 0,
+      currencyCode: "BRL",
+      estimatedMinDays: 5,
+      estimatedMaxDays: 15,
+      minimumOrderAmountCents: 19990,
+      isActive: true
+    }
+  });
+
+  // ── Coupons ─────────────────────────────────────────
+  const now = new Date();
+  const sixMonths = new Date(now.getTime() + 180 * 24 * 60 * 60 * 1000);
+
+  await prisma.coupon.upsert({
+    where: { code: "BEMVINDO10" },
+    update: {},
+    create: {
+      code: "BEMVINDO10",
+      type: "PERCENTAGE",
+      valueCentsOrPercentage: 10,
+      currencyCode: "BRL",
+      status: "ACTIVE",
+      maxUses: null,
+      maxUsesPerUser: 1,
+      startsAt: now,
+      expiresAt: sixMonths,
+      minimumOrderAmountCents: 9990,
+      isStackable: false
+    }
+  });
+
+  await prisma.coupon.upsert({
+    where: { code: "FRETEGRATIS" },
+    update: {},
+    create: {
+      code: "FRETEGRATIS",
+      type: "FIXED",
+      valueCentsOrPercentage: 2490,
+      currencyCode: "BRL",
+      status: "ACTIVE",
+      maxUses: 100,
+      maxUsesPerUser: 1,
+      startsAt: now,
+      expiresAt: sixMonths,
+      minimumOrderAmountCents: null,
+      isStackable: false
+    }
+  });
 };
 
 run()

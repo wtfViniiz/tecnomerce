@@ -151,8 +151,8 @@ export class PrismaPaymentAttemptProvider implements IPaymentAttemptProvider {
     const transition = await prisma.paymentStatusTransition.create({
       data: {
         paymentAttemptId: input.paymentAttemptId,
-        fromStatus: input.fromStatus as PaymentStatusTransitionRecord["fromStatus"],
-        toStatus: input.toStatus,
+        fromStatus: input.fromStatus as import("@prisma/client").PaymentStatus | null,
+        toStatus: input.toStatus as import("@prisma/client").PaymentStatus,
         source: input.source,
         sourceReference: input.sourceReference,
         reason: input.reason,

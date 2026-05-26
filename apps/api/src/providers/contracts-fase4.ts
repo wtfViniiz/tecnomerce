@@ -242,6 +242,7 @@ export interface ICartProvider {
   findByUserId(userId: string): Promise<CartRecord[]>;
   findActiveByGuestToken(guestTokenHash: string): Promise<CartRecord | null>;
   findActiveByUserId(userId: string): Promise<CartRecord | null>;
+  listItems(cartId: string): Promise<CartItemRecord[]>;
   create(input: Omit<CartRecord, "id" | "createdAt" | "updatedAt">): Promise<CartRecord>;
   addItem(cartId: string, input: Omit<CartItemRecord, "id" | "createdAt" | "updatedAt">): Promise<CartItemRecord>;
   updateItemQuantity(itemId: string, quantity: number): Promise<CartItemRecord>;
@@ -296,6 +297,10 @@ export interface IOrderProvider {
     offset?: number;
   }): Promise<{ items: OrderRecord[]; total: number }>;
   create(input: Omit<OrderRecord, "id" | "createdAt" | "updatedAt">): Promise<OrderRecord>;
+  createItem(input: Omit<OrderItemRecord, "id" | "createdAt">): Promise<OrderItemRecord>;
+  createAddress(input: Omit<OrderAddressRecord, "id" | "createdAt">): Promise<OrderAddressRecord>;
+  listItems(orderId: string): Promise<OrderItemRecord[]>;
+  findAddressByOrderId(orderId: string): Promise<OrderAddressRecord | null>;
   updateStatus(id: string, status: OrderRecord["status"]): Promise<OrderRecord>;
   addStatusHistory(input: Omit<OrderStatusHistoryRecord, "id" | "createdAt">): Promise<OrderStatusHistoryRecord>;
 }

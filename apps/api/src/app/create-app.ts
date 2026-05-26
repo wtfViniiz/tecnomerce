@@ -27,6 +27,22 @@ import type { BannerService } from "@/modules/catalog/banners/services/banner.se
 import { createMediaRouter } from "@/modules/catalog/media/routes/media.routes.js";
 import type { MediaController } from "@/modules/catalog/media/controllers/media.controller.js";
 import type { MediaService } from "@/modules/catalog/media/services/media.service.js";
+import { createFavoriteRouters } from "@/modules/favorites/routes/favorite.routes.js";
+import type { FavoriteController } from "@/modules/favorites/controllers/favorite.controller.js";
+import { createAddressRouters } from "@/modules/addresses/routes/address.routes.js";
+import type { AddressController } from "@/modules/addresses/controllers/address.controller.js";
+import { createCouponRouters } from "@/modules/coupons/routes/coupon.routes.js";
+import type { CouponController } from "@/modules/coupons/controllers/coupon.controller.js";
+import { createShippingRouters } from "@/modules/shipping/routes/shipping.routes.js";
+import type { ShippingController } from "@/modules/shipping/controllers/shipping.controller.js";
+import { createCartRouters } from "@/modules/cart/routes/cart.routes.js";
+import type { CartController } from "@/modules/cart/controllers/cart.controller.js";
+import { createOrderRouters } from "@/modules/orders/routes/order.routes.js";
+import type { OrderController } from "@/modules/orders/controllers/order.controller.js";
+import { createPaymentRouters } from "@/modules/payments/routes/payment.routes.js";
+import type { PaymentController } from "@/modules/payments/controllers/payment.controller.js";
+import { createCheckoutRouters } from "@/modules/checkout/routes/checkout.routes.js";
+import type { CheckoutController } from "@/modules/checkout/controllers/checkout.controller.js";
 import type {
   IRbacProvider,
   ISessionProvider,
@@ -56,6 +72,15 @@ export type CreateAppDeps = {
   mediaController: MediaController;
   mediaService: MediaService;
   storageProvider: IStorageProvider;
+  // Phase 4
+  favoriteController: FavoriteController;
+  addressController: AddressController;
+  couponController: CouponController;
+  shippingController: ShippingController;
+  cartController: CartController;
+  orderController: OrderController;
+  paymentController: PaymentController;
+  checkoutController: CheckoutController;
 };
 
 export const createApp = (deps: CreateAppDeps): Express => {
@@ -140,6 +165,86 @@ export const createApp = (deps: CreateAppDeps): Express => {
       rbacProvider: deps.rbacProvider
     })
   );
+
+  // Phase 4 routes
+  const favoriteRouters = createFavoriteRouters({
+    controller: deps.favoriteController,
+    tokenProvider: deps.tokenProvider,
+    userProvider: deps.userProvider,
+    sessionProvider: deps.sessionProvider,
+    rbacProvider: deps.rbacProvider
+  });
+  app.use("/api/v1", favoriteRouters.publicRouter);
+
+  const addressRouters = createAddressRouters({
+    controller: deps.addressController,
+    tokenProvider: deps.tokenProvider,
+    userProvider: deps.userProvider,
+    sessionProvider: deps.sessionProvider,
+    rbacProvider: deps.rbacProvider
+  });
+  app.use("/api/v1", addressRouters.publicRouter);
+
+  const couponRouters = createCouponRouters({
+    controller: deps.couponController,
+    tokenProvider: deps.tokenProvider,
+    userProvider: deps.userProvider,
+    sessionProvider: deps.sessionProvider,
+    rbacProvider: deps.rbacProvider
+  });
+  app.use("/api/v1", couponRouters.publicRouter);
+  app.use("/api/v1", couponRouters.adminRouter);
+
+  const shippingRouters = createShippingRouters({
+    controller: deps.shippingController,
+    tokenProvider: deps.tokenProvider,
+    userProvider: deps.userProvider,
+    sessionProvider: deps.sessionProvider,
+    rbacProvider: deps.rbacProvider
+  });
+  app.use("/api/v1", shippingRouters.publicRouter);
+  app.use("/api/v1", shippingRouters.adminRouter);
+
+  const cartRouters = createCartRouters({
+    controller: deps.cartController,
+    tokenProvider: deps.tokenProvider,
+    userProvider: deps.userProvider,
+    sessionProvider: deps.sessionProvider,
+    rbacProvider: deps.rbacProvider
+  });
+  app.use("/api/v1", cartRouters.publicRouter);
+
+  const orderRouters = createOrderRouters({
+    controller: deps.orderController,
+    tokenProvider: deps.tokenProvider,
+    userProvider: deps.userProvider,
+    sessionProvider: deps.sessionProvider,
+    rbacProvider: deps.rbacProvider
+  });
+  app.use("/api/v1", orderRouters.publicRouter);
+  app.use("/api/v1", orderRouters.adminRouter);
+
+  const paymentRouters = createPaymentRouters({
+    controller: deps.paymentController,
+    tokenProvider: deps.tokenProvider,
+    userProvider: deps.userProvider,
+    sessionProvider: deps.sessionProvider,
+    rbacProvider: deps.rbacProvider
+  });
+  app.use("/api/v1", paymentRouters.publicRouter);
+  app.use("/api/v1", paymentRouters.adminRouter);
+
+  // Webhook route (separate - no auth, raw body)
+  app.use("/api/v1", paymentRouters.webhookRouter);
+
+  const checkoutRouters = createCheckoutRouters({
+    controller: deps.checkoutController,
+    tokenProvider: deps.tokenProvider,
+    userProvider: deps.userProvider,
+    sessionProvider: deps.sessionProvider,
+    rbacProvider: deps.rbacProvider
+  });
+  app.use("/api/v1", checkoutRouters.publicRouter);
 
   app.use(errorHandler);
 

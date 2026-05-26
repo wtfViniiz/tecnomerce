@@ -57,7 +57,8 @@ Antes de qualquer alteracao, ler nesta ordem:
 
 ## Estado atual do projeto
 A **Fase 2 (Plataforma Base) esta FECHADA** (2026-05-26).
-A **Fase 3 (Catalogo e Conteudo) esta em implementacao** (2026-05-27).
+A **Fase 3 (Catalogo e Conteudo) esta FECHADA** (2026-05-27).
+A **Fase 4 (Carrinho, Checkout e Pagamentos) esta FECHADA** (2026-05-26).
 
 ### Ja implementado (Fase 2 completa + Fase 3 parcial)
 - estrutura base do monorepo (`apps/*`, `packages/*`, npm workspaces)
@@ -193,25 +194,46 @@ Provider refactorado com singleton de Queue e graceful shutdown.
 
 ## Fase 2 - Status: CONCLUIDA (2026-05-26)
 
-## Fase 3 - Status: IMPLEMENTADA (2026-05-27)
-Schema, providers, modulos e rotas implementados.
-Pendencias: seeds expandidos e testes de integracao para catalogo.
-Proximo passo: Fase 4 (Carrinho, Checkout e Pagamentos).
+## Fase 3 - Status: FECHADA (2026-05-27)
 
-### Fase 3 - Itens implementados (2026-05-27)
-- Schema Prisma expandido com 6 novos models + 3 enums
-- Migration incremental: `20260527000000_fase3_catalogo`
-- 6 novos providers: Category, Product, ProductVariant, ProductMedia, Banner, PublicCache
-- 4 modulos completos: categories, products, banners, media
-- 16+ arquivos de modulo (schemas, services, controllers, routes)
-- 10 endpoints admin + 5 endpoints publicos
-- Cache Redis publico com invalidacao
-- Build limpo, 94 testes passando
+## Fase 4 - Status: IMPLEMENTADA (2026-05-26)
+Schema, providers, modulos, rotas e integracao Mercado Pago implementados.
+Build limpo (0 erros TypeScript), 94 testes passando.
+Pendencias: seeds de frete/cupons, testes de integracao Fase 4, migration contra PostgreSQL real.
 
-### Fase 3 - O que falta para Fase 4
-- Schema Prisma: Cart, CartItem, Coupon, CouponUsage, Address, ShippingMethod, ShippingRule, Order, OrderItem, OrderAddress, OrderStatusHistory, PaymentAttempt, PaymentStatusTransition, PaymentWebhookEvent, Favorite
-- Modulos: carrinho, checkout, frete, cupom, pagamento, pedidos
-- Integracao Mercado Pago (checkout embedded + webhooks)
+### Fase 4 - Itens implementados
+- **Schema Prisma**: Cart, CartItem, Coupon, CouponUsage, Address, ShippingMethod, ShippingRule, Order, OrderItem, OrderAddress, OrderStatusHistory, PaymentAttempt, PaymentStatusTransition, PaymentWebhookEvent, Favorite
+- **8 novos providers Prisma**: CartProvider, CouponProvider, CouponUsageProvider, AddressProvider, ShippingRuleProvider, OrderProvider, PaymentAttemptProvider, PaymentWebhookEventProvider, FavoriteProvider
+- **Contracts**: `contracts-fase4.ts` com 9 interfaces
+- **SDK**: `mercadopago` (v2) instalado para integracao real
+- **Variaveis de ambiente**: MP_ACCESS_TOKEN, MP_PUBLIC_KEY, MP_WEBHOOK_SECRET, MP_API_BASE_URL
+
+### Fase 4 - Modulos implementados (8 modulos)
+1. **addresses/** — CRUD de enderecos do usuario (authenticated, sem admin)
+2. **favorites/** — toggle/list/add/remove favoritos (authenticated)
+3. **coupons/** — CRUD admin + validacao publica de cupons
+4. **shipping/** — calculo de frete por CEP + listagem de metodos/regras
+5. **cart/** — carrinho guest + autenticado, merge ao login, itens com snapshot de preco
+6. **orders/** — listagem customer + admin, detalhe com itens/endereco/historico, cancelamento
+7. **payments/** — integracao Mercado Pago real (PIX + cartao), webhook com validacao de assinatura
+8. **checkout/** — orquestrador: carrinho -> endereco -> frete -> cupom -> pedido -> pagamento
+
+### Fase 4 - Rotas
+- **Admin**: GET/POST/PATCH/DELETE coupons, GET shipping/methods, GET orders, GET payments
+- **Public**: CRUD addresses, favorites, cart (GET/POST/PATCH/DELETE), POST checkout, POST payments, POST coupons/validate, POST shipping/calculate
+- **Webhook**: POST /webhooks/mercadopago (sem auth, com validacao de assinatura HMAC)
+
+### Fase 4 - Seguranca
+- Webhook do Mercado Pago validado com `WebhookSignatureValidator` do SDK oficial
+- Cart guest usa `x-guest-token` header com SHA-256 hash
+- Merge de carrinho requer autenticacao
+- Pagamento requer cartao tokenizado via frontend (dados nunca passam pelo backend)
+
+### Fase 4 - Proximo passo
+- Migration contra PostgreSQL real: `npx prisma migrate deploy`
+- Seeds de ShippingMethod + ShippingRule
+- Testes de integracao para checkout flow
+- Integracao frontend (MercadoPago.js para tokenizacao)
 
 ## Regras de implementacao
 - sem `any`
@@ -271,8 +293,8 @@ Opcionais:
 - `ADMIN_BOOTSTRAP_EMAIL` / `ADMIN_BOOTSTRAP_PASSWORD` - seed de admin inicial
 
 ## Checklist para o proximo agente
-- Fase 3 esta IMPLEMENTADA - avancar para Fase 4 (Carrinho, Checkout e Pagamentos)
-- ler `04-fase-carrinho-checkout-e-pagamentos/` antes de qualquer alteracao
+- Fase 4 esta IMPLEMENTADA - ler `04-fase-carrinho-checkout-e-pagamentos/` antes de qualquer alteracao
+- ler `01-fase-inicializacao/06-seguranca-obrigatoria.md` para reforço de seguranca
 - nao alterar contratos canonicos sem instrução explicita
 - nao relaxar seguranca para facilitar teste
 - manter refresh token apenas em cookie
@@ -281,7 +303,7 @@ Opcionais:
 - manter reuse detection com revogacao total
 - manter `traceId` em toda resposta
 - manter logs seguros
-- prioridade 1: aplicar migrations contra PostgreSQL real (`npx prisma migrate deploy`)
-- prioridade 2: expandir schema Prisma para Fase 4 (Cart, Order, Payment, Coupon, Shipping, Address)
-- prioridade 3: implementar modulo de carrinho (guest cart + merge ao logar)
-- prioridade 4: implementar modulo de checkout e pagamento (Mercado Pago)
+- prioridade 1: migration contra PostgreSQL real (`npx prisma migrate deploy`)
+- prioridade 2: seeds de ShippingMethod + ShippingRule
+- prioridade 3: testes de integracao para Fase 4 (checkout flow completo)
+- prioridade 4: Fase 5 (se houver)

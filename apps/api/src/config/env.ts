@@ -15,7 +15,11 @@ const envSchema = z.object({
   PERMISSION_CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(300),
   SESSION_CACHE_TTL_SECONDS: z.coerce.number().int().positive().default(900),
   REFRESH_METADATA_TTL_SECONDS: z.coerce.number().int().positive().default(2592000),
-  SENTRY_DSN: z.string().optional().default("")
+  SENTRY_DSN: z.string().optional().default(""),
+  MP_ACCESS_TOKEN: z.string().min(1),
+  MP_PUBLIC_KEY: z.string().min(1),
+  MP_WEBHOOK_SECRET: z.string().min(1),
+  MP_API_BASE_URL: z.string().url().default("https://api.mercadopago.com")
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

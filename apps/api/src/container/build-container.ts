@@ -10,6 +10,30 @@ import { BannerController } from "@/modules/catalog/banners/controllers/banner.c
 import { BannerService } from "@/modules/catalog/banners/services/banner.service.js";
 import { MediaController } from "@/modules/catalog/media/controllers/media.controller.js";
 import { MediaService } from "@/modules/catalog/media/services/media.service.js";
+import { FavoriteController } from "@/modules/favorites/controllers/favorite.controller.js";
+import { FavoriteService } from "@/modules/favorites/services/favorite.service.js";
+import { AddressController } from "@/modules/addresses/controllers/address.controller.js";
+import { AddressService } from "@/modules/addresses/services/address.service.js";
+import { CouponController } from "@/modules/coupons/controllers/coupon.controller.js";
+import { CouponService } from "@/modules/coupons/services/coupon.service.js";
+import { ShippingController } from "@/modules/shipping/controllers/shipping.controller.js";
+import { ShippingService } from "@/modules/shipping/services/shipping.service.js";
+import { CartController } from "@/modules/cart/controllers/cart.controller.js";
+import { CartService } from "@/modules/cart/services/cart.service.js";
+import { OrderController } from "@/modules/orders/controllers/order.controller.js";
+import { OrderService } from "@/modules/orders/services/order.service.js";
+import { PaymentController } from "@/modules/payments/controllers/payment.controller.js";
+import { PaymentService } from "@/modules/payments/services/payment.service.js";
+import { CheckoutController } from "@/modules/checkout/controllers/checkout.controller.js";
+import { CheckoutService } from "@/modules/checkout/services/checkout.service.js";
+import { PrismaFavoriteProvider } from "@/providers/favorite.provider.js";
+import { PrismaAddressProvider } from "@/providers/address.provider.js";
+import { PrismaCouponProvider, PrismaCouponUsageProvider } from "@/providers/coupon.provider.js";
+import { PrismaShippingRuleProvider } from "@/providers/shipping-rule.provider.js";
+import { PrismaCartProvider } from "@/providers/cart.provider.js";
+import { PrismaOrderProvider } from "@/providers/order.provider.js";
+import { PrismaPaymentAttemptProvider } from "@/providers/payment-attempt.provider.js";
+import { PrismaPaymentWebhookEventProvider } from "@/providers/payment-webhook.provider.js";
 import { PrismaAuditProvider } from "@/providers/audit.provider.js";
 import { PrismaBannerProvider } from "@/providers/banner.provider.js";
 import { PrismaCategoryProvider } from "@/providers/category.provider.js";
@@ -101,6 +125,57 @@ export const buildContainer = (): Container => {
   );
   const mediaController = new MediaController(mediaService);
 
+  // Phase 4 providers
+  const favoriteProvider = new PrismaFavoriteProvider();
+  const addressProvider = new PrismaAddressProvider();
+  const couponProvider = new PrismaCouponProvider();
+  const couponUsageProvider = new PrismaCouponUsageProvider();
+  const shippingRuleProvider = new PrismaShippingRuleProvider();
+  const cartProvider = new PrismaCartProvider();
+  const orderProvider = new PrismaOrderProvider();
+  const paymentAttemptProvider = new PrismaPaymentAttemptProvider();
+  const paymentWebhookEventProvider = new PrismaPaymentWebhookEventProvider();
+
+  // Phase 4 services (order matters - dependencies first)
+  const favoriteService = new FavoriteService(favoriteProvider, auditProvider);
+  const favoriteController = new FavoriteController(favoriteService);
+
+  const addressService = new AddressService(addressProvider, auditProvider);
+  const addressController = new AddressController(addressService);
+
+  const couponService = new CouponService(couponProvider, couponUsageProvider, auditProvider);
+  const couponController = new CouponController(couponService);
+
+  const shippingService = new ShippingService(shippingRuleProvider, auditProvider);
+  const shippingController = new ShippingController(shippingService);
+
+  const cartService = new CartService(cartProvider, productVariantProvider, auditProvider);
+  const cartController = new CartController(cartService);
+
+  const orderService = new OrderService(orderProvider, auditProvider);
+  const orderController = new OrderController(orderService);
+
+  const paymentService = new PaymentService(
+    orderProvider,
+    paymentAttemptProvider,
+    paymentWebhookEventProvider,
+    auditProvider
+  );
+  const paymentController = new PaymentController(paymentService);
+
+  const checkoutService = new CheckoutService(
+    cartProvider,
+    addressProvider,
+    shippingRuleProvider,
+    couponProvider,
+    couponUsageProvider,
+    orderProvider,
+    paymentAttemptProvider,
+    productVariantProvider,
+    auditProvider
+  );
+  const checkoutController = new CheckoutController(checkoutService);
+
   registerAllWorkers({
     queueProvider,
     emailProvider,
@@ -144,6 +219,33 @@ export const buildContainer = (): Container => {
   container.register(TOKENS.bannerController, bannerController);
   container.register(TOKENS.mediaService, mediaService);
   container.register(TOKENS.mediaController, mediaController);
+
+  // Phase 4 registrations
+  container.register(TOKENS.favoriteProvider, favoriteProvider);
+  container.register(TOKENS.addressProvider, addressProvider);
+  container.register(TOKENS.couponProvider, couponProvider);
+  container.register(TOKENS.couponUsageProvider, couponUsageProvider);
+  container.register(TOKENS.shippingRuleProvider, shippingRuleProvider);
+  container.register(TOKENS.cartProvider, cartProvider);
+  container.register(TOKENS.orderProvider, orderProvider);
+  container.register(TOKENS.paymentAttemptProvider, paymentAttemptProvider);
+  container.register(TOKENS.paymentWebhookEventProvider, paymentWebhookEventProvider);
+  container.register(TOKENS.favoriteService, favoriteService);
+  container.register(TOKENS.favoriteController, favoriteController);
+  container.register(TOKENS.addressService, addressService);
+  container.register(TOKENS.addressController, addressController);
+  container.register(TOKENS.couponService, couponService);
+  container.register(TOKENS.couponController, couponController);
+  container.register(TOKENS.shippingService, shippingService);
+  container.register(TOKENS.shippingController, shippingController);
+  container.register(TOKENS.cartService, cartService);
+  container.register(TOKENS.cartController, cartController);
+  container.register(TOKENS.orderService, orderService);
+  container.register(TOKENS.orderController, orderController);
+  container.register(TOKENS.paymentService, paymentService);
+  container.register(TOKENS.paymentController, paymentController);
+  container.register(TOKENS.checkoutService, checkoutService);
+  container.register(TOKENS.checkoutController, checkoutController);
 
   return container;
 };

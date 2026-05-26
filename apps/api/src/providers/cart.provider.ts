@@ -77,6 +77,14 @@ export class PrismaCartProvider implements ICartProvider {
     return cart ? mapCart(cart) : null;
   }
 
+  public async listItems(cartId: string): Promise<CartItemRecord[]> {
+    const items = await prisma.cartItem.findMany({
+      where: { cartId },
+      orderBy: { createdAt: "asc" }
+    });
+    return items.map(mapCartItem);
+  }
+
   public async create(
     input: Omit<CartRecord, "id" | "createdAt" | "updatedAt">
   ): Promise<CartRecord> {

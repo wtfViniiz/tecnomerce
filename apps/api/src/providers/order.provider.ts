@@ -1,6 +1,8 @@
 import type {
   OrderRecord,
   OrderStatusHistoryRecord,
+  OrderItemRecord,
+  OrderAddressRecord,
   IOrderProvider
 } from "@/providers/contracts-fase4.js";
 import { prisma } from "@/providers/prisma.js";
@@ -60,6 +62,84 @@ const mapOrderStatusHistory = (history: {
   actorUserId: history.actorUserId,
   traceId: history.traceId,
   createdAt: history.createdAt
+});
+
+const mapOrderItem = (item: {
+  id: string;
+  orderId: string;
+  productId: string | null;
+  productVariantId: string | null;
+  productNameSnapshot: string;
+  productSlugSnapshot: string;
+  skuSnapshot: string;
+  categoryNameSnapshot: string | null;
+  fabricNameSnapshot: string | null;
+  sizeNameSnapshot: string | null;
+  colorNameSnapshot: string | null;
+  quantity: number;
+  unitBasePriceCents: number;
+  unitPromotionalPriceCents: number | null;
+  unitCustomizationPriceCents: number;
+  unitFinalPriceCents: number;
+  currencyCode: string;
+  customName: string | null;
+  customNumber: string | null;
+  customNotes: string | null;
+  createdAt: Date;
+}): OrderItemRecord => ({
+  id: item.id,
+  orderId: item.orderId,
+  productId: item.productId,
+  productVariantId: item.productVariantId,
+  productNameSnapshot: item.productNameSnapshot,
+  productSlugSnapshot: item.productSlugSnapshot,
+  skuSnapshot: item.skuSnapshot,
+  categoryNameSnapshot: item.categoryNameSnapshot,
+  fabricNameSnapshot: item.fabricNameSnapshot,
+  sizeNameSnapshot: item.sizeNameSnapshot,
+  colorNameSnapshot: item.colorNameSnapshot,
+  quantity: item.quantity,
+  unitBasePriceCents: item.unitBasePriceCents,
+  unitPromotionalPriceCents: item.unitPromotionalPriceCents,
+  unitCustomizationPriceCents: item.unitCustomizationPriceCents,
+  unitFinalPriceCents: item.unitFinalPriceCents,
+  currencyCode: item.currencyCode,
+  customName: item.customName,
+  customNumber: item.customNumber,
+  customNotes: item.customNotes,
+  createdAt: item.createdAt
+});
+
+const mapOrderAddress = (address: {
+  id: string;
+  orderId: string;
+  recipientName: string;
+  phone: string | null;
+  postalCode: string;
+  street: string;
+  number: string;
+  complement: string | null;
+  neighborhood: string;
+  city: string;
+  state: string;
+  countryCode: string;
+  addressType: string;
+  createdAt: Date;
+}): OrderAddressRecord => ({
+  id: address.id,
+  orderId: address.orderId,
+  recipientName: address.recipientName,
+  phone: address.phone,
+  postalCode: address.postalCode,
+  street: address.street,
+  number: address.number,
+  complement: address.complement,
+  neighborhood: address.neighborhood,
+  city: address.city,
+  state: address.state,
+  countryCode: address.countryCode,
+  addressType: address.addressType as OrderAddressRecord["addressType"],
+  createdAt: address.createdAt
 });
 
 export class PrismaOrderProvider implements IOrderProvider {
@@ -129,6 +209,72 @@ export class PrismaOrderProvider implements IOrderProvider {
     });
 
     return mapOrder(order);
+  }
+
+  public async createItem(
+    input: Omit<OrderItemRecord, "id" | "createdAt">
+  ): Promise<OrderItemRecord> {
+    const item = await prisma.orderItem.create({
+      data: {
+        orderId: input.orderId,
+        productId: input.productId,
+        productVariantId: input.productVariantId,
+        productNameSnapshot: input.productNameSnapshot,
+        productSlugSnapshot: input.productSlugSnapshot,
+        skuSnapshot: input.skuSnapshot,
+        categoryNameSnapshot: input.categoryNameSnapshot,
+        fabricNameSnapshot: input.fabricNameSnapshot,
+        sizeNameSnapshot: input.sizeNameSnapshot,
+        colorNameSnapshot: input.colorNameSnapshot,
+        quantity: input.quantity,
+        unitBasePriceCents: input.unitBasePriceCents,
+        unitPromotionalPriceCents: input.unitPromotionalPriceCents,
+        unitCustomizationPriceCents: input.unitCustomizationPriceCents,
+        unitFinalPriceCents: input.unitFinalPriceCents,
+        currencyCode: input.currencyCode,
+        customName: input.customName,
+        customNumber: input.customNumber,
+        customNotes: input.customNotes
+      }
+    });
+    return mapOrderItem(item);
+  }
+
+  public async createAddress(
+    input: Omit<OrderAddressRecord, "id" | "createdAt">
+  ): Promise<OrderAddressRecord> {
+    const address = await prisma.orderAddress.create({
+      data: {
+        orderId: input.orderId,
+        recipientName: input.recipientName,
+        phone: input.phone,
+        postalCode: input.postalCode,
+        street: input.street,
+        number: input.number,
+        complement: input.complement,
+        neighborhood: input.neighborhood,
+        city: input.city,
+        state: input.state,
+        countryCode: input.countryCode,
+        addressType: input.addressType
+      }
+    });
+    return mapOrderAddress(address);
+  }
+
+  public async listItems(orderId: string): Promise<OrderItemRecord[]> {
+    const items = await prisma.orderItem.findMany({
+      where: { orderId },
+      orderBy: { createdAt: "asc" }
+    });
+    return items.map(mapOrderItem);
+  }
+
+  public async findAddressByOrderId(orderId: string): Promise<OrderAddressRecord | null> {
+    const address = await prisma.orderAddress.findFirst({
+      where: { orderId }
+    });
+    return address ? mapOrderAddress(address) : null;
   }
 
   public async updateStatus(id: string, status: OrderRecord["status"]): Promise<OrderRecord> {
